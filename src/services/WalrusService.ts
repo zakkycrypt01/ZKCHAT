@@ -1,8 +1,10 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
 import { InternalServerError } from '../utils/AppError';
 import { Message } from './MessageService';
 import mongoose, { Document, Types } from 'mongoose';
 import { EncryptionService } from './EncryptionService';
+dotenv.config();
 
 interface IMessage extends Document {
   orderId: string;
@@ -125,7 +127,7 @@ export class WalrusService {
     }
   }
 
-  static async getMessages(userId: string): Promise<Message[]> {
+  static async getMessages(userId: string, orderIdPrefix?: string): Promise<Message[]> {
     try {
       await this.initialize();
       console.log('Getting messages for user:', userId);
@@ -135,37 +137,44 @@ export class WalrusService {
         return [];
       }
 
-      const messages = await MessageModel.find({
+      const query: any = {
         $or: [{ sender: userId }, { recipient: userId }]
-      }).sort({ timestamp: -1 });
+      };
+
+      // Add filter for orderId prefix if provided
+      if (orderIdPrefix) {
+        query.orderId = { $regex: `^${orderIdPrefix}` }; // Matches orderId starting with the prefix
+      }
+
+      const messages = await MessageModel.find(query).sort({ timestamp: -1 });
       console.log('Found messages in MongoDB:', messages);
 
       const messagePromises = messages.map(async (msg: IMessage) => {
         try {
           const rawMessage = await this.retrieveMessage(msg.blobId);
           console.log('Raw message from Walrus:', rawMessage);
-          
+
           const messageData = JSON.parse(rawMessage);
           console.log('Parsed message data:', messageData);
-          
-          const encryptedMessage = typeof messageData.encryptedMessage === 'string' 
+
+          const encryptedMessage = typeof messageData.encryptedMessage === 'string'
             ? JSON.parse(messageData.encryptedMessage)
             : messageData.encryptedMessage;
-          
+
           console.log('Parsed encrypted message:', encryptedMessage);
-          
+
           const ephemeralPrivateKey = msg.ephemeralPrivateKey;
           if (!ephemeralPrivateKey) {
             console.error('No ephemeral private key found for message:', msg.blobId);
             return null;
           }
-          
+
           const decryptedMessage = EncryptionService.decryptMessage(
             JSON.stringify(encryptedMessage),
             ephemeralPrivateKey
           );
           console.log('Decrypted message:', decryptedMessage);
-          
+
           const finalMessage = {
             id: msg._id.toString(),
             orderId: msg.orderId,
@@ -180,7 +189,7 @@ export class WalrusService {
             status: msg.status,
             blobId: msg.blobId
           } as Message;
-          
+
           console.log('Final message object:', finalMessage);
           return finalMessage;
         } catch (error) {
@@ -248,4 +257,4 @@ export class WalrusService {
       throw new InternalServerError('Failed to notify about new message', { error });
     }
   }
-} 
+}

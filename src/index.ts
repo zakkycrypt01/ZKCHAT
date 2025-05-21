@@ -31,8 +31,8 @@ app.get('/api/health', (req, res) => {
 app.get('/api/messages', async (req, res) => {
   try {
     console.log('GET /api/messages - Query params:', req.query);
-    const { publicKey } = req.query;
-    
+    const { publicKey, orderId } = req.query;
+
     if (!publicKey) {
       console.log('Missing publicKey parameter');
       return res.status(400).json({ 
@@ -41,9 +41,8 @@ app.get('/api/messages', async (req, res) => {
       });
     }
 
-    // Get messages from Walrus service
-    const messages = await WalrusService.getMessages(publicKey as string);
-    console.log(`Retrieved ${messages.length} messages for publicKey: ${publicKey}`);
+    const messages = await WalrusService.getMessages(publicKey as string, orderId as string);
+    console.log(`Retrieved ${messages.length} messages for publicKey: ${publicKey} and orderId: ${orderId}`);
     res.json(messages);
   } catch (error) {
     console.error('Error in GET /api/messages:', error);
@@ -54,7 +53,6 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-// Generate key pair endpoint
 app.post('/api/generate-keys', async (req, res) => {
   try {
     console.log('POST /api/generate-keys - Request body:', req.body);
@@ -67,13 +65,13 @@ app.post('/api/generate-keys', async (req, res) => {
   }
 });
 
-// Send message endpoint (legacy endpoint)
 app.post('/api/messages', async (req, res) => {
   try {
     console.log('POST /api/messages - Request body:', req.body);
     const { orderId, sender, recipient, message, timestamp } = req.body;
 
     if (!orderId || !sender || !recipient || !message) {
+      console.log('Missing required fields:', { orderId, sender, recipient, message });
       return res.status(400).json({ 
         error: 'Missing required fields',
         message: 'orderId, sender, recipient, and message are required'
@@ -81,21 +79,26 @@ app.post('/api/messages', async (req, res) => {
     }
 
     // Generate ephemeral key pair for this message
+    console.log('Generating ephemeral key pair...');
     const ephemeralKeyPair = await EncryptionService.generateKeyPair();
     console.log('Generated ephemeral key pair for message');
 
     // Generate zkSNARK proof using ephemeral keys
+    console.log('Generating zkSNARK proof...');
     const { proof, publicSignals, commitment } = await ZKProofService.generateProof(
       message,
       sender,
       ephemeralKeyPair.privateKey
     );
+    console.log('Generated proof and commitment');
 
     // Encrypt the message
+    console.log('Encrypting message...');
     const encryptedMessage = EncryptionService.encryptMessage(
       message,
       ephemeralKeyPair.privateKey
     );
+    console.log('Message encrypted successfully');
 
     // Store the encrypted message and proof in Walrus
     const messageData = {
@@ -111,8 +114,9 @@ app.post('/api/messages', async (req, res) => {
       timestamp: timestamp || Math.floor(Date.now() / 1000)
     };
 
-    console.log('Storing message data:', messageData);
+    console.log('Storing message data in Walrus...');
     const blobId = await WalrusService.storeMessage(JSON.stringify(messageData));
+    console.log('Message stored successfully with blobId:', blobId);
     
     const response = {
       id: blobId,
@@ -132,9 +136,15 @@ app.post('/api/messages', async (req, res) => {
     res.status(201).json(response);
   } catch (error) {
     console.error('Error in POST /api/messages:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    });
     res.status(500).json({ 
       error: 'Failed to send message',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      details: error instanceof Error ? error.stack : undefined
     });
   }
 });
@@ -193,4 +203,4 @@ app.post('/api/messages/retrieve', async (req, res) => {
 const PORT = process.env.PORT || 2001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-}); 
+});
