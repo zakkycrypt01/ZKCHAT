@@ -51,7 +51,7 @@ app.post('/api/messages', validateMessage, async (req, res, next) => {
     }
 
     // Generate ephemeral key pair for this message
-    const ephemeralKeyPair = EncryptionService.generateKeyPair();
+    const ephemeralKeyPair = await EncryptionService.generateKeyPair();
     console.log('Generated ephemeral key pair for message');
 
     // Generate zkSNARK proof using ephemeral keys

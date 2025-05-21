@@ -6,7 +6,16 @@ import { ZKProofService } from './services/ZKProofService';
 import { BadRequestError } from './utils/AppError';
 
 const app = express();
-app.use(cors());
+
+// Configure CORS to allow all origins
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Initialize ZKProofService
