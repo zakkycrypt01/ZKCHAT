@@ -44,7 +44,10 @@ export class WalrusService {
     if (this.isInitialized) return;
 
     try {
-      const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://zakariyahabdulaleem27:wyGPt6quc3cXzPeG@icpnomads.4escy.mongodb.net/icpnomads?retryWrites=true&w=majority';
+      const MONGODB_URI = process.env.MONGODB_URI;
+      if (!MONGODB_URI) {
+        throw new Error('MONGODB_URI is not defined in the environment variables');
+      }
       console.log('Connecting to MongoDB...');
       
       const options = {
