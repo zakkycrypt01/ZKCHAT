@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import os from 'os';
 import { EncryptionService } from './services/EncryptionService';
 import { WalrusService } from './services/WalrusService';
 import { ZKProofService } from './services/ZKProofService';
@@ -201,6 +202,24 @@ app.post('/api/messages/retrieve', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 2001;
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  const networkInterfaces = os.networkInterfaces();
+  const addresses = [];
+
+  for (const interfaceName in networkInterfaces) {
+    const interfaces = networkInterfaces[interfaceName];
+    if (interfaces) {
+      for (const iface of interfaces) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          addresses.push(iface.address);
+        }
+      }
+    }
+  }
+
+  console.log(`Server running on:`);
+  addresses.forEach((address) => {
+    console.log(`  - http://${address}:${PORT}`);
+  });
 });
