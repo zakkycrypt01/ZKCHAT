@@ -7,11 +7,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev src/index.ts",
-    "circuit:generate-ptau": "chmod +x scripts/generate-powersoftau.sh && ./scripts/generate-powersoftau.sh",
-    "circuit:build": "chmod +x scripts/build-circuit.sh && ./scripts/build-circuit.sh",
+    "circuit:generate-ptau": "chmod +x ./scripts/generate-powersoftau.sh && ./scripts/generate-powersoftau.sh",
+    "circuit:build": "chmod +x ./scripts/build-circuit.sh && ./scripts/build-circuit.sh",
     "circuit:prove": "snarkjs groth16 fullprove",
     "circuit:verify": "snarkjs groth16 verify",
-    "postinstall": "npm run circuit:generate-ptau && npm run circuit:build"
+    "postinstall": ""
   },
   "dependencies": {
     "@types/cors": "^2.8.17",
