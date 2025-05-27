@@ -37,7 +37,7 @@ const MessageSchema = new mongoose.Schema({
 const MessageModel = mongoose.model<IMessage>('Message', MessageSchema);
 
 export class WalrusService {
-  private static readonly WALRUS_PUBLISHER_URL = 'https://publisher.walrus-testnet.walrus.space/v1/blobs/';
+  private static readonly WALRUS_PUBLISHER_URL = 'https://publisher.walrus-01.tududes.com/v1/blobs';
   private static readonly WALRUS_AGGREGATOR_URL = 'https://aggregator.walrus-testnet.walrus.space/v1/blobs/';
   private static isInitialized = false;
   private static isMongoAvailable = false;
